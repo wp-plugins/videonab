@@ -1,1 +1,0 @@
-<p><?php echo __('In Progress', VHub_LangPrefix) ?></p>
