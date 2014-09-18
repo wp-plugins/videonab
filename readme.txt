@@ -26,7 +26,7 @@ Key Features
 *	Re-title Videos and their descriptions as needed 
 *	Edit permalink titles of videos as needed and enhance SEO 
 *	Latest YouTube API 
-*	Pro version available with automated video aggregation, voting, and more!
+*	Pro version available: Aggregate youtube videos automatically, voting, and more!
 
 Check out the live demo: 
 http://www.scissorbox.com/videonab/
