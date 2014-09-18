@@ -28,6 +28,9 @@ Key Features
 *	Latest YouTube API 
 *	Pro version available with automated video aggregation, voting, and more!
 
+Check out the live demo: 
+http://www.scissorbox.com/videonab/
+
 Also See: 
 VideoNab Documentation: http://www.videonab.com/videonablite-documentation/
 More About VideoNab: http://www.videonab.com
