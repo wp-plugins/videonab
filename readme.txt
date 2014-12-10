@@ -26,7 +26,8 @@ Key Features
 *	Re-title Videos and their descriptions as needed
 *	Edit permalink titles of videos as needed and enhance SEO
 *	Latest YouTube API
-*	Pro version available: Aggregate youtube videos automatically, voting, and more!
+*	Pro version available: Aggregate youtube videos automatically, voting, and more! [link](http://example.com "Title")
+
 
 Check out the live demo:
 http://www.videonab.com/tutorials/
@@ -34,8 +35,7 @@ http://www.videonab.com/tutorials/
 
 Also See:
 VideoNab Documentation: http://www.videonab.com/videonablite-documentation/
-More About VideoNab: http://www.videonab.com
-VideoNab Pro Version (LOTS More features!): http://www.videonab.com/product/videonab/
+VideoNab Pro (LOTS More features!): http://www.videonab.com/product/videonab/
 
 
 
