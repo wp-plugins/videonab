@@ -543,7 +543,7 @@ class VHub_Main {
 						->set_html('
 							<div class="crbh-info-text-one" >
 								<p><strong>' . __( 'Shortcode: [videonab]', VHub_LangPrefix) . '</strong></p>
-								<p><em>' .  __( 'To display our video feed, simply enter dtails below, then paste the above shortcode into your page or post.', VHub_LangPrefix ) . '</em></p>
+								<p><em>' .  __( 'To display our video feed, simply enter details below, then paste the above shortcode into your page or post.', VHub_LangPrefix ) . '</em></p>
 							</div>
 						'),
 
