@@ -38,7 +38,6 @@ VideoNab Documentation: http://www.videonab.com/videonablite-documentation/
 VideoNab Pro (LOTS More features!): http://www.videonab.com/product/videonab/
 
 
-
 == Installation ==
 1. Installing VideoNab is a piece of cake. Simply navigate to the "Plugins" section of your WordPress admin, and select "Add New".
 2. You'll then want to select "Upload" from the menu at the top of this page. On the next screen, you'll want to click "browse" which will allow you to locate your VideoNab zip file.
