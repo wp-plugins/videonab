@@ -92,7 +92,7 @@ Image reference: http://www.videonab.com/wp-content/uploads/2014/08/9.delete.png
 
 == Screenshots ==
 
-1. List View
+1. List view
 2. Video Detail View
 3. VideoNab is 100% responsive and displays properly on all devices
 4. Manage videos, change titles / descriptions and more via the VideoNab admin
