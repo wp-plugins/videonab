@@ -31,7 +31,7 @@ Key Features
 
 Check out the live demo:
 http://www.videonab.com/tutorials/
-* Yes, we used VideoNab Lite as the video tutorial tool for VideoNab Pro - to show you how it works in the wild!
+(Yes, we used VideoNab Lite as the video tutorial tool for VideoNab Pro - to show you how it works in the wild!)
 
 Also See:
 VideoNab Documentation: http://www.videonab.com/videonablite-documentation/
