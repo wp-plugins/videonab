@@ -29,7 +29,8 @@ Key Features
 *	Pro version available: Aggregate youtube videos automatically, voting, and more!
 
 Check out the live demo:
-http://www.scissorbox.com/videonab/
+http://www.videonab.com/tutorials/
+* Yes, we used VideoNab Lite as the video tutorial tool for VideoNab Pro - to show you how it works in the wild!
 
 Also See:
 VideoNab Documentation: http://www.videonab.com/videonablite-documentation/
@@ -108,4 +109,7 @@ Image reference: http://www.videonab.com/wp-content/uploads/2014/08/9.delete.png
 * Display improvements
 
 = 1.0 =
-* Major upgrade
+* Admin section layout improvements, tool tips
+* Now possible to select video detail page template
+* additional video date filter options
+* better mobile browsing experience
