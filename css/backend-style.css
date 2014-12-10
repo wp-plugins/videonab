@@ -73,6 +73,126 @@ div.crbh-notifications a.crbh-btn-close {
 	font-weight: bold;
 }
 
+div.carbon-container .carbon-response {
+	max-height: 400px;
+	max-width: 800px;
+	overflow-y: scroll;
+}
+div.carbon-container div.carbon-response {
+	padding:0 10px 0 0;
+	margin-top:20px
+}
+div.carbon-container div.carbon-response div.carbon-updated,
+div.carbon-container div.carbon-response div.carbon-error {
+	margin: 5px 0 15px;
+	border-left: 4px solid #7ad03a;
+	padding: 1px 12px;
+	background-color: #fff;
+	-webkit-box-shadow: 0 1px 1px 0 rgba(0,0,0,.1);
+	box-shadow: 0 1px 1px 0 rgba(0,0,0,.1);
+}
+div.carbon-container div.carbon-response div.carbon-error {
+	border-left: 4px solid #dd3d36
+}
+
+div.crbh-cron_grab_now  {
+	position: relative;
+	margin-left: -230px;
+}
+
+div.crbh-cron_grab_now .carbon-response { }
+
+div.crbh-cron_grab_now .carbon-response p {
+	padding: 5px 0 10px 0;
+}
+
+.carbon-field.carbon-select span.button {
+	margin-left:10px;
+}
+.carbon-field.carbon-select-extended-vh.crbh-expanded {
+	margin-bottom: -20px;
+}
+.carbon-field.carbon-select-extended-vh select {
+	display: inline-block;
+}
+
+div.crbh-info-text-one,
+div.crbh-info-text-two {
+	position: relative;
+	margin-left: -230px;
+	background: #eee;
+	border: 1px solid #ccc;
+	padding: 10px;
+}
+div.crbh-info-text-one {
+	border: 1px solid #b6b6b6;
+	background: #dedede;
+	max-width: 730px;
+}
+
+span.crbh-sepline {
+	display: block;
+	margin-left: -230px;
+	margin-bottom: -5px;
+	background: #d2d2d2;
+	height: 3px;
+	width: 100%;
+	max-width: 585px;
+}
+
+span.crbh-tooltips-btn {
+	display: inline-block;
+	margin-left:10px;
+	width:25px;
+	height:25px;
+	line-height: 25px;
+	text-align: center;
+	color: #fff;
+	font-weight: bold;
+	background: #2598c3;
+	-webkit-border-radius: 50%;
+	-moz-border-radius: 50%;
+	border-radius: 50%;
+}
+span.crbh-tooltips-btn:hover {
+	cursor: pointer;
+}
+div.crbh-tooltips {
+	padding-top: 20px;
+	max-width: 385px;
+	background: url(images/tooltip-tick.png) right bottom no-repeat;
+}
+div.crbh-tooltips div {
+	position: absolute;
+	background: #2598c3;
+	left: 0;
+	max-width: 620px;
+	padding: 25px;
+	z-index: 100;
+}
+div.crbh-tooltips p {
+	padding-bottom: 20px;
+	font-size: 15px;
+	line-height: 23px;
+	color: #fff;
+	font-style: italic
+}
+div.crbh-tooltips p:last-child {
+	padding-bottom: 0;
+}
+
+span.crbh-active {
+	font-weight: bold;
+}
+
+.crbh-hidden {
+	display: none;
+}
+
+.crbh_videos_page_crbn-settings form > p.submit {
+	display: none;
+}
+
 @media all and (max-width: 1250px) {
 	div.crbh-notifications span.crbh-copy {
 		font-size:15px;
@@ -84,9 +204,39 @@ div.crbh-notifications a.crbh-btn-close {
 		font-size:13px;
 	}
 }
-		
+
 @media all and (max-width: 1105px) {
 	div.crbh-notifications span.crbh-copy {
 		display:none;
+	}
+}
+
+@media all and (max-width: 782px) {
+	.carbon-field.carbon-select-extended-vh select {
+		max-width: 90%;
+	}
+
+	div.crbh-tooltips {
+		max-width: 95%;
+	}
+	div.crbh-tooltips div {
+		max-width: 94%;
+	}
+}
+
+@media all and (max-width: 700px) {
+	div.crbh-tooltips {
+		max-width: 96%;
+	}
+}
+
+@media all and (max-width: 500px) {
+	div.crbh-tooltips,
+	span.crbh-tooltips-btn {
+		display:none !important;
+	}
+
+	.carbon-field.carbon-select-extended-vh select {
+		max-width: 100%;
 	}
 }

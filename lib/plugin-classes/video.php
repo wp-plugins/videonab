@@ -75,6 +75,7 @@ class VHub_Video {
                 'metas'                 => array(
                         'video_id'                => get_post_meta($video_obj->ID, 'video_id'               ,true),
                         'updated'                 => get_post_meta($video_obj->ID, 'updated'                ,true),
+                        'published'               => get_post_meta($video_obj->ID, 'published'              ,true),
                         'watch_page'              => get_post_meta($video_obj->ID, 'watch_page'             ,true),
                         'flash_player_url'        => get_post_meta($video_obj->ID, 'flash_player_url'       ,true),
                         'duration'                => get_post_meta($video_obj->ID, 'duration'               ,true),
@@ -314,6 +315,17 @@ class VHub_Video_Youtube {
     public static function data_processor($video_entry){
         $videoThumbnails = $video_entry->getVideoThumbnails();
 
+        if ( 
+            method_exists($video_entry->getRating(), 'getAverage') 
+            && method_exists($video_entry->getRating(), 'getnumRaters')
+        ) {
+            $rating_average = $video_entry->getRating()->getAverage();
+            $raters = $video_entry->getRating()->getnumRaters();
+        } else {
+            $rating_average = 0;
+            $raters = 0;
+        }
+
         return array(
                 'title'                 => $video_entry->getVideoTitle(),
                 'id'                    => $video_entry->getVideoId(),
@@ -322,13 +334,16 @@ class VHub_Video_Youtube {
                         'video_id'              => $video_entry->getVideoId(),
                         'updated'               => $video_entry->getUpdated()->getText(),
                         'updated_time'          => strtotime($video_entry->getUpdated()->getText()),
+                        'published'             => $video_entry->getPublished()->getText(),
+                        'published_time'        => strtotime($video_entry->getPublished()->getText()),
                         'watch_page'            => $video_entry->getVideoWatchPageUrl(),
                         'flash_player_url'      => $video_entry->getFlashPlayerUrl(),
                         'duration'              => $video_entry->getVideoDuration(),
                         'youtube_view_count'    => $video_entry->getVideoViewCount(),
                         'thumbnail'             => preg_replace('~default\.jpg~', '0.jpg', $videoThumbnails[0]['url'] ),
                         'video_service'         => 'youtube',
-                        'rating'                => 0,
+                        'rating'                => $rating_average,
+                        'raters'                => $raters,
                         'fb_likes'              => 0,
                         'fb_comments'           => 0,
                         'fb_comments_total'     => 0
@@ -340,8 +355,9 @@ class VHub_Video_Youtube {
             );
     }
 
-    public static function get_videos($search_term, $page=0, $max_results = 8, $orderby='viewCount') {
+    public static function get_videos($search_term, $page=0, $max_results = 8, $orderby='published') {
         # orderby: relevance, viewCount, updated, rating
+        # https://developers.google.com/youtube/2.0/reference?csw=1#orderbysp
         Zend_Loader::loadClass('Zend_Gdata_YouTube');
         $yt = new Zend_Gdata_YouTube();
         $yt->setMajorProtocolVersion(2);

@@ -1,6 +1,12 @@
 <?php  
 $response = false;
-if (is_admin() && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['crb_request']) && $_POST['crb_request']=='new-video' ) {
+if (
+	is_admin() 
+	&& is_user_logged_in()
+	&& $_SERVER['REQUEST_METHOD'] == 'POST' 
+	&& isset($_POST['crb_request']) 
+	&& $_POST['crb_request']=='new-video' 
+) {
 	$video_url = $_POST['video_link'];
 	$response = VHub_Video::update_single_video( $video_url );
 }

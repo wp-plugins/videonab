@@ -23,6 +23,12 @@ require_once( VHub_Main::get_plugin_path('lib/Zend/Loader.php') );
 // include Video Functions
 require_once( VHub_Main::get_plugin_path('lib/plugin-classes/video.php') );
 
+// include Date Range
+require_once( VHub_Main::get_plugin_path('lib/plugin-classes/date_range.php') );
+
+// include custom prev next links
+require_once( VHub_Main::get_plugin_path('lib/plugin-classes/prev_next_links.php') );
+
 //Flushes Rewrite(permalink) Rules uppon Activation
 function vhub_pages_rewrite_flush() {
 	VHub_Main::register_post_types();
@@ -35,17 +41,27 @@ register_activation_hook( __FILE__, 'vhub_pages_rewrite_flush' );
 *	Define main plugin class
 */
 class VHub_Main {
-	
+
 	/**
 	*	Define class variables
 	*/
-	protected 	$prefix 		= VHub_Prefix,
-				$plugin_name	= 'VideoNab',
-				$cache_buster 	= '0.4',
+	protected 	$prefix = VHub_Prefix,
+				$plugin_name = 'VideoNab',
+				$cache_buster = '0.4',
 				$post_type,
 				$tax_category,
 				$plugin_url,
-				$plugin_path;
+				$plugin_path,
+				$filter_date_range = array(
+						'order_type' => '',
+						'date_filter' => '',
+						'date_filter_fixed' => '',
+						'date_filter_before' => '',
+						'date_filter_after' => '',
+						'date_filter_last_days' => 5,
+						'youtube_time_start' => 'T00:00:01.000Z',
+						'youtube_time_end' => 'T23:59:59.000Z'
+					);
 
 	function __construct(){
 		$this->set_plugin_path();
@@ -91,12 +107,18 @@ class VHub_Main {
 			add_action('wp_head', array($this, 'wp_head_after_jquery'), 15);
 
 			add_filter('the_content', array($this, 'the_content'), 99);
+
+			add_action('template_redirect', array($this, 'template_redirect'));
 		}
 
 		// [videonab]
 		add_shortcode( 'videonab', array($this, 'shortcode') );						// add shortcode support
 
 		add_action('admin_notices', array($this, 'plugin_admin_notices'));
+
+		add_action('pre_get_posts', array($this, 'pre_get_posts'));
+
+		$this->set_fitler_date_range();
 
 		return $this;
 	}
@@ -193,7 +215,7 @@ class VHub_Main {
 	protected function get_posts_array($post_type = null, $new_args = array() ){
 		$return = array();
 		$return[] = 'Please Select';
-		
+
 		if ($post_type) {
 			$args = array(
 				'posts_per_page'	=>	-1,
@@ -225,6 +247,8 @@ class VHub_Main {
 			wp_enqueue_script($this->prefix . 'functions', $this->get_plugin_url('js/functions.js'), array(
 					'jquery'
 				), $this->cache_buster );
+		} else if ( is_admin() ) {
+			wp_enqueue_script($this->prefix . 'functions', $this->get_plugin_url('js/backend.js') );
 		}
 	}
 
@@ -316,7 +340,7 @@ class VHub_Main {
 		global $menu, $submenu;
 		// in progress
 	}
-	
+
 
 	/**
 	*	Register plugin post types
@@ -396,12 +420,12 @@ class VHub_Main {
 			'all_items'           => __( 'All '.$plural, VHub_LangPrefix ),
 			'parent_item'         => __( 'Parent '.$singular, VHub_LangPrefix ),
 			'parent_item_colon'   => __( 'Parent '.$singular.':', VHub_LangPrefix ),
-			'edit_item'           => __( 'Edit '.$singular, VHub_LangPrefix ), 
+			'edit_item'           => __( 'Edit '.$singular, VHub_LangPrefix ),
 			'update_item'         => __( 'Update '.$singular, VHub_LangPrefix ),
 			'add_new_item'        => __( 'Add New '.$singular, VHub_LangPrefix ),
 			'new_item_name'       => __( 'New '.$singular.' Name', VHub_LangPrefix ),
 			'menu_name'           => __( $menu_label, VHub_LangPrefix )
-		); 
+		);
 	}
 
 	/**
@@ -428,6 +452,16 @@ class VHub_Main {
 			'video-removal',								// page slug
 			array($this, 'page_video_removal')				// callback function
 		);
+
+		// Options page for updating all videos
+		add_submenu_page(
+			'edit.php?post_type=' . $this->post_type,		// parent slug
+			'Video Updater',								// page title
+			'Video Updater',								// menu title
+			'publish_posts', 								// capability
+			'video-updater',								// page slug
+			array($this, 'page_video_updater')				// callback function
+		);
 	}
 
 	// add new videos page content
@@ -438,6 +472,11 @@ class VHub_Main {
 	// video removal
 	public function page_video_removal(){
 		include( $this->get_plugin_path('includes/admin-video-removal.php') );
+	}
+
+	// video updater
+	public function page_video_updater(){
+		include( $this->get_plugin_path('includes/admin-video-updater.php') );
 	}
 
 
@@ -462,6 +501,10 @@ class VHub_Main {
 				${CARBON_PLUGIN_URL} = $this->get_plugin_url('lib/carbon-fields');
 			}
 			include_once( $this->get_plugin_path('lib/carbon-fields/carbon-fields.php') );
+		}
+
+		if ( $this->carbon_framework_exist() ) {
+			include_once( $this->get_plugin_path('lib/carbon-fields-extended/Carbon_Field.php') );
 		}
 	}
 
@@ -488,23 +531,99 @@ class VHub_Main {
 	*/
 	protected function carbon_framework_options_page(){
 		if ( $this->carbon_framework_exist() ){
+			$available_templates = array_merge( array(
+				'default' => 'Default Post Template',
+				'page.php' => 'Default Page Template'
+			), (array) wp_get_theme()->get_page_templates() );
 
 			Carbon_Container::factory('theme_options', 'Settings')
 				->set_page_parent('edit.php?post_type=crbh_videos')
 				->add_fields(array(
-					Carbon_Field::factory('separator', 	$this->prefix . 'sep2', 				__('Shortcode', VHub_LangPrefix))
-						->help_text( __('To display our video feed, simply enter details below, rhen paste the following shortcode into your page or post [videonab]', VHub_LangPrefix) ),
+					Carbon_Field::factory('html', $this->prefix . 'scodeinfo')
+						->set_html('
+							<div class="crbh-info-text-one" >
+								<p><strong>' . __( 'Shortcode: [videonab]', VHub_LangPrefix) . '</strong></p>
+								<p><em>' .  __( 'To display our video feed, simply enter dtails below, then paste the above shortcode into your page or post.', VHub_LangPrefix ) . '</em></p>
+							</div>
+						'),
 
-					Carbon_Field::factory('separator', 	$this->prefix . 'sep0', 				__('General Options', VHub_LangPrefix)),
-					Carbon_Field::factory('text', 		$this->prefix . 'video_per_page', 		__('Number of videos per page', VHub_LangPrefix))
+					Carbon_Field::factory('separator', $this->prefix . 'sep0', __('Display Options', VHub_LangPrefix)),
+					Carbon_Field::factory('Select_Extended_VH', $this->prefix . 'newest', __('View Results', VHub_LangPrefix))
+						->tooltip(
+								__( '<p><strong>YouTube Publish Date: When “New” toggle is selected (default view)</strong> Displays videos by the date added to YouTube: Fore example, even if you manually add a video today, but it was posted on YouTube in 2008, it will be placed in that order with other videos. Aggregated videos will also display in chronological order based on when they were added to YouTube. Great for presenting time-senstive videos, like tech announcements, movie trailers, moments in history, etc.</p>', VHub_LangPrefix ) .
+								__( '<p><strong>By Date Added to Site:</strong> Displays videos  as they have been added to the site: For example, if you add a video today, it will show up with today’s time stamp regardless of when it was originally posted to YouTube. Aggregated videos will display by the date they were pulled from YouTube and placed on your site. This is ideal for sites preseting tutorials, or more random topics that don’t rely on specific dates, like cat videos. Additionally it allows you to force videos to the top.</p>', VHub_LangPrefix )
+							)
+						->add_options( array(
+								'added_to_video_service' => 'Youtube Publish Date',
+								'added_to_website' => 'By Date Added to Site',
+							) ),
+					Carbon_Field::factory('text', $this->prefix . 'video_per_page', __('Number of videos per page', VHub_LangPrefix))
 						->set_default_value('10'),
-					Carbon_Field::factory('select', 	$this->prefix . 'include_pagination', 	__('Include Pagination', VHub_LangPrefix))
+					Carbon_Field::factory('select', $this->prefix . 'include_pagination', __('Include Pagination', VHub_LangPrefix))
 						->add_options( $this->yes_no() ),
-					Carbon_Field::factory('select', 	$this->prefix . 'enable_comments', 		__('Enable Comments', VHub_LangPrefix))
+					Carbon_Field::factory('select', $this->prefix . 'enable_comments', __('Enable Comments', VHub_LangPrefix))
 						->add_options( $this->yes_no() ),
-					Carbon_Field::factory('select', 	$this->prefix . 'video_page', 			__('Choose Main Video Page', VHub_LangPrefix))
+					Carbon_Field::factory('select', $this->prefix . 'video_page', __('Choose Main Video Page', VHub_LangPrefix))
 						->add_options( $this->get_posts_array('page') ),
+					Carbon_Field::factory('select', $this->prefix . 'video_details_page', __('Choose Video Details Page Template', VHub_LangPrefix))
+						->add_options( $available_templates ),
+
+
+					/*
+					Video Filter options goes here
+					*/
+					Carbon_Field::factory('html', $this->prefix . 'sepline_one')
+						->set_html('<span class="crbh-sepline"></span>'),
+					Carbon_Field::factory('separator', $this->prefix . 'sep3', __('Video Date Filters', VHub_LangPrefix)),
+					Carbon_Field::factory('Select_Extended_VH', $this->prefix . 'enable_listing_filter', __('Filter Video Library by Date', VHub_LangPrefix))
+						->tooltip(
+								__( '<p>When set to yes, this option will filter videos contained in your library (both on the video feed and backend library) independently of the aggregation process. This comes in handy when you have a large library of videos and want to showcase only those in a specific date range. For example, many topics won’t require the Event Scheduler, and only need videos to be pulled once. This will allow you to assign a date range to this type of collection.</p>', VHub_LangPrefix )
+							)
+						->add_options( $this->yes_no() ),
+					Carbon_Field::factory('select', $this->prefix . 'date_filter', __('Videos Date Filter', VHub_LangPrefix))
+						->add_options( array(
+								'any_date' => 'Videos from any date',
+								'within_last_days' => 'Videos within the last x # of days',
+								'specific_date' => 'Videos on specific date',
+								'after_specific_date' => 'Videos after specific date',
+								'before_specific_date' => 'Videos before specific date',
+								'between_specific_date' => 'Videos in specific date range'
+							) ),
+					Carbon_Field::factory('text', $this->prefix . 'date_filter_last_days', __('Number of days including today', VHub_LangPrefix))
+						->set_default_value( 5 )
+						->help_text('Must be numeric.'),
+					Carbon_Field::factory('date', $this->prefix . 'date_filter_fixed', __('Date', VHub_LangPrefix)),
+					Carbon_Field::factory('date', $this->prefix . 'date_filter_before', __('Date Before', VHub_LangPrefix)),
+					Carbon_Field::factory('date', $this->prefix . 'date_filter_after', __('Date After', VHub_LangPrefix)),
+
+					/*
+					Cron Jobs options goes here
+					*/
+					Carbon_Field::factory('html', $this->prefix . 'cron_grab_now', '&nbsp;')
+						->set_html('
+							<div class="crbh-cron_grab_now carbon-container" >
+								<p class="submit">
+									<input type="submit" name="submit" id="submit" class="button-primary" value="Save Changes">&nbsp;&nbsp;&nbsp;
+								</p>
+							</div>
+						'),
 				));
+		}
+	}
+
+	public function template_redirect() {
+		if ( !is_singular( $this->post_type ) ) {
+			return;
+		}
+
+		$template_to_load = get_option( $this->prefix . 'video_details_page' );
+
+		if ( $template_to_load==='default' ) {
+			return;
+		}
+
+		if ( $overridden_template = locate_template( $template_to_load ) ) {
+			load_template( $overridden_template ); exit;
 		}
 	}
 
@@ -525,15 +644,18 @@ class VHub_Main {
 
 	public function wpadmin_columns($defaults){
 		if (isset($_GET['post_type']) && $_GET['post_type']==$this->post_type) {
-			$defaults['video_service'] 	= __('Video Service', VHub_LangPrefix);
-			$defaults['_block_video'] 	= __('Blocked', VHub_LangPrefix);
-			$defaults['thumbnail'] 		= __('Thumbnail', VHub_LangPrefix);
+			$defaults['sorted_by'] = __('Video Order', VHub_LangPrefix);
+			$defaults['video_service'] = __('Video Service', VHub_LangPrefix);
+			$defaults['_block_video'] = __('Blocked', VHub_LangPrefix);
+			$defaults['thumbnail'] = __('Thumbnail', VHub_LangPrefix);
 		}
 
 		return $defaults;
 	}
 
 	public function wpadmin_custom_columns($column_name, $id){
+		global $post;
+
 		switch ($column_name) {
 			case 'thumbnail':
 				$img 		= get_post_meta($id,'thumbnail',true);
@@ -544,7 +666,19 @@ class VHub_Main {
 				break;
 			case '_block_video':
 				$val = get_post_meta($id,$column_name,true);
+				if ( !$val ) {
+					$val = 'No';
+				}
 				echo ucfirst($val);
+				break;
+			case 'sorted_by':
+				echo '<span>';
+				if ( $this->filter_date_range['order_type']==='added_to_video_service' ) {
+					echo '<em>' . __('Published on Youtube', VHub_LangPrefix) . '</em><br/>' . date('Y-m-d H:i:s', get_post_meta( $id, 'published_time', true ) );
+				} else {
+					echo '<em>' . __('Published on Site', VHub_LangPrefix) . '</em><br/>' . get_the_time( 'Y-m-d H:i:s', $post );
+				}
+				echo '</span>';
 				break;
 			case 'video_service':
 				echo '<img style="width:70px; height: auto" src="' . $this->get_plugin_url('css/images/' . get_post_meta($id,$column_name,true) . '.png') . '" alt="" />';
@@ -553,35 +687,57 @@ class VHub_Main {
 	}
 
 	protected function get_videos( $reset_query = false ){
-		$per_page 		= $this->videos_per_page();
-		$curr_page		= isset($_GET['video_page']) ? $_GET['video_page'] : 1;
-		$current_order 	= isset($_GET['crbh_orderby']) ? $_GET['crbh_orderby'] : false;
-		
+		$per_page = $this->videos_per_page();
+		$curr_page = isset($_GET['video_page']) ? $_GET['video_page'] : 1;
+		$current_order = isset($_GET['crbh_orderby']) ? $_GET['crbh_orderby'] : false;
+
+		$newest_order = get_option( $this->prefix . 'newest' ); # added_to_video_service, added_to_website
+		if ( !$newest_order ) {
+			$newest_order = 'added_to_website';
+		}
+
+		$popular_order = get_option( $this->prefix . 'popular' ); # youtube_popularity, facebook_votes
+		if ( !$popular_order ) {
+			$popular_order = 'youtube_popularity';
+		}
+
 		$query_args = array(
-				'post_type'			=> $this->post_type,
-				'posts_per_page'	=> (($per_page && is_numeric($per_page)) ? $per_page : 10),
-				'paged'				=> $curr_page,
-				'post_status'      	=> 'publish',
-				'meta_query'		=> array(
+				'post_type' => $this->post_type,
+				'posts_per_page' => (($per_page && is_numeric($per_page)) ? $per_page : 10),
+				'paged' => $curr_page,
+				'post_status' => 'publish',
+				'meta_query' => array(
+						'relation' => 'AND',
 						array(
-							'key'		=> '_block_video',
-							'compare'	=> '!=',
-							'value'		=> 'Yes'
+							'key' => '_block_video',
+							'compare' => '!=',
+							'value' => 'Yes'
 						)
 					)
 			);
 
-		if ($current_order && $current_order=='popular') {
-			$query_args['order'] 	= 'DESC';
-			$query_args['meta_key'] = 'fb_likes'; // fb_comments_total
-			$query_args['orderby'] 	= 'meta_value_num';
-		}else{
-			$query_args['orderby']	= 'post_date';
-			$query_args['order']    = 'DESC';
+		if ( $current_order && $current_order==='popular' ) {
+			$query_args['order'] = 'DESC';
+			$query_args['orderby'] = 'meta_value_num';
+
+			if( $popular_order==='facebook_votes' ) {
+				$query_args['meta_key'] = 'fb_likes_comments_count'; // fb_comments_total
+			} else {
+				$query_args['meta_key'] = 'youtube_view_count';
+			}
+		} else {
+			if( $newest_order==='added_to_website' ) { // added_to_website
+				$query_args['orderby'] = 'post_date';
+				$query_args['order'] = 'DESC';
+			} else { // added_to_video_service
+				$query_args['order'] = 'DESC';
+				$query_args['meta_key'] = 'published_time';
+				$query_args['orderby'] = 'meta_value_num';
+			}
 		}
 
 		$entries = new WP_Query( $query_args );
-		
+
 		if ($reset_query) {
 			wp_reset_query();
 		}
@@ -615,7 +771,7 @@ class VHub_Main {
 
 		if (isset($_GET['post']) && is_numeric($_GET['post']) && class_exists('VHub_Video')) {
 			$video_data = VHub_Video::get_video_data($_GET['post']);
-			
+
 			$html .= self::table_row_html(__('Video Title', VHub_Prefix), $video_data['title']);
 			$html .= self::table_row_html(__('Video Link', VHub_Prefix), 'https://www.youtube.com/watch?v=' . $video_data['id']);
 			$html .= self::table_row_html(__('Video Image', VHub_Prefix), '<img src="' . $video_data['thumbnail'] . '" alt="" />');
@@ -668,7 +824,7 @@ class VHub_Main {
 			<tr bgcolor="#FFFFFF">
 				<td width="20">&nbsp;</td>
 				<td>
-					<font style="font-family:sans-serif;font-size:12px">' . esc_attr($field_value) . '</font>
+					<font style="font-family:sans-serif;font-size:12px">' . $field_value . '</font>
 				</td>
 			</tr>
 		';
@@ -686,7 +842,7 @@ class VHub_Main {
 					</font>
 				</td>
 				<td bgcolor="#FFFFFF">
-					<font style="font-family:sans-serif;font-size:12px">' . esc_attr($field_value) . '</font>
+					<font style="font-family:sans-serif;font-size:12px">' . $field_value . '</font>
 				</td>
 			</tr>
 		';
@@ -701,16 +857,16 @@ class VHub_Main {
 			add_filter("mce_external_plugins", 		array($this, "crb_register_tinymce_javascript") );
 			add_filter('mce_buttons', 				array($this, 'crb_register_buttons') );
 		}
-	}	
+	}
 
 	public function crb_register_buttons($buttons) {
 	   array_push($buttons, "separator", "vhub_plugin");
 	   return $buttons;
 	}
-	 
+
 	// Load the TinyMCE plugin : editor_plugin.js (wp2.5)
 	public function crb_register_tinymce_javascript($plugin_array) {
-	   $plugin_array["vhub_plugin"] = $this->get_plugin_url('js/backend.js');
+	   $plugin_array["vhub_plugin"] = $this->get_plugin_url('js/backend-tinymce.js');
 	   return $plugin_array;
 	}
 
@@ -727,5 +883,223 @@ class VHub_Main {
 		if ( 'index.php'===$pagenow && get_option( $option_key )!=='disabled' ) {
 			include( $this->get_plugin_path('includes/admin-notification.php') );
 		}
+	}
+
+	protected function set_fitler_date_range() {
+		$date_ranges = new VHub_Video_DateRange();
+		$this->filter_date_range = $date_ranges->get_date_range();
+
+		return $this;
+	}
+
+	public function pre_get_posts( $query ) {
+
+		if (
+			empty($query->query['post_type'])
+			|| $query->query['post_type']!==$this->post_type
+		) {
+			return $query;
+		}
+
+		if (
+			is_admin()
+			&& !$query->is_main_query()
+		) {
+			return $query;
+		}
+
+		add_filter( 'posts_orderby', array($this, 'posts_orderby'));
+
+		if (
+			get_option( $this->prefix . 'enable_listing_filter' )!=='Yes'
+			&& (
+				empty( $_GET['crbh_orderby'] )
+				|| $_GET['crbh_orderby']==='default'
+			)
+		) {
+
+			$newest_order = get_option( $this->prefix . 'newest' ); # added_to_video_service, added_to_website
+			if ( !$newest_order ) {
+				$newest_order = 'added_to_website';
+			}
+
+			if( $newest_order==='added_to_website' ) { // added_to_website
+				$query->set('orderby', 'post_date');
+				$query->set('order', 'DESC');
+			} else { // added_to_video_service
+				$query->set('orderby', 'meta_value_num');
+				$query->set('order', 'DESC');
+				$query->set('meta_key', 'published_time');
+			}
+
+			return $query;
+		}
+
+		if ( $this->filter_date_range['order_type']!=='added_to_video_service' ) {
+
+			add_filter( 'posts_where', array($this, 'posts_where') );
+
+			return $query;
+		}
+
+		add_filter( 'posts_join_paged', array($this, 'posts_join_paged'));
+
+		//Get original meta query
+		$meta_query = $query->get('meta_query');
+
+		$youtube_start_time = $this->filter_date_range['youtube_time_start'];
+		$youtube_end_time = $this->filter_date_range['youtube_time_end'];
+
+		$date_filter = $this->filter_date_range['date_filter'];
+		$date_filter_fixed = strtotime( $this->filter_date_range['date_filter_fixed'] . $youtube_start_time );
+		$date_filter_before = strtotime( $this->filter_date_range['date_filter_before'] . $youtube_end_time );
+		$date_filter_after = strtotime( $this->filter_date_range['date_filter_after'] . $youtube_start_time );
+
+		$date_filter_last_days = $this->filter_date_range['date_filter_last_days'];
+		if ( !is_numeric($date_filter_last_days) ) {
+			$date_filter_last_days = 5;
+		}
+		$date_filter_last_days_time = strtotime( "-{$date_filter_last_days} day" . date('Y-m-d') . $youtube_start_time );
+
+		if (
+			(
+				$date_filter==='after_specific_date'
+				|| $date_filter==='between_specific_date'
+			)
+			&& $date_filter_after
+		) {
+			$meta_query[] = array(
+					'key' => 'published_time',
+					'compare' => '>=',
+					'value' => $date_filter_after,
+					'type' => 'NUMERIC'
+				);
+		}
+
+		if (
+			(
+				$date_filter==='before_specific_date'
+				|| $date_filter==='between_specific_date'
+			)
+			&& $date_filter_before
+		) {
+			$meta_query[] = array(
+					'key' => 'published_time',
+					'compare' => '<=',
+					'value' => $date_filter_before,
+					'type' => 'NUMERIC'
+				);
+		}
+
+		if (
+			$date_filter==='specific_date'
+			&& $date_filter_fixed
+		) {
+			$meta_query[] = array(
+					'key' => 'published_time',
+					'compare' => 'BETWEEN',
+					'value' => array($date_filter_fixed,  strtotime( date('Y-m-d',$date_filter_fixed). $youtube_end_time ) ),
+					'type' => 'NUMERIC'
+				);
+		}
+
+		if (
+			$date_filter==='within_last_days'
+		) {
+			$meta_query[] = array(
+					'key' => 'published_time',
+					'compare' => '>=',
+					'value' => $date_filter_last_days_time,
+					'type' => 'NUMERIC'
+				);
+		}
+
+		$meta_query = $query->set('meta_query', $meta_query);
+
+		return $query;
+	}
+
+	public function posts_orderby( $orderby ) {
+		remove_filter( 'posts_orderby', array($this, 'posts_orderby'));
+
+		global $wpdb;
+
+		if ( $this->filter_date_range['order_type']==='added_to_video_service' ) {
+			$orderby = str_replace( "{$wpdb->posts}.post_date" , "`crbh_meta`.`meta_value`", $orderby);
+		} else {
+			$orderby .= " , {$wpdb->posts}.post_title";
+		}
+
+		return $orderby;
+	}
+
+	public function posts_join_paged( $join ) {
+
+		global $wpdb;
+
+		$join .= "INNER JOIN `$wpdb->postmeta` AS `crbh_meta` ON (
+					`crbh_meta`.`post_id` = `{$wpdb->posts}`.`ID`
+					AND `crbh_meta`.`meta_key` = 'published_time'
+				) ";
+
+		return $join;
+	}
+
+	public function posts_where( $where ) {
+		global $wpdb;
+
+		# clear the posts_where filter
+		remove_filter( 'posts_where', array($this, 'posts_where') );
+
+		$date_filter = $this->filter_date_range['date_filter'];
+		$date_filter_before = strtotime( $this->filter_date_range['date_filter_before'] );
+		$date_filter_after = strtotime( $this->filter_date_range['date_filter_after'] );
+
+		$date_filter_fixed_start = strtotime( $this->filter_date_range['date_filter_fixed'] . ' 00:00:00' );
+		$date_filter_fixed_end = strtotime( $this->filter_date_range['date_filter_fixed'] . ' 23:59:59' );
+
+		$date_filter_last_days = $this->filter_date_range['date_filter_last_days'];
+		if ( !is_numeric($date_filter_last_days) ) {
+			$date_filter_last_days = 5;
+		}
+		$date_filter_last_days_time = strtotime( "-{$date_filter_last_days} day" . date('Y-m-d') );
+
+		$date = " CAST( unix_timestamp(`{$wpdb->posts}`.`post_date`) AS SIGNED) ";
+
+		if (
+			(
+				$date_filter==='after_specific_date'
+				|| $date_filter==='between_specific_date'
+			)
+			&& $date_filter_after
+		) {
+			$where .= " AND {$date} >='{$date_filter_after}' ";
+		}
+
+		if (
+			(
+				$date_filter==='before_specific_date'
+				|| $date_filter==='between_specific_date'
+			)
+			&& $date_filter_before
+		) {
+			$where .= " AND {$date} <= '{$date_filter_before}' ";
+		}
+
+		if (
+			$date_filter==='specific_date'
+			&& $date_filter_fixed
+		) {
+			$where .= " AND {$date} >= '{$date_filter_fixed_start}' ";
+			$where .= "  AND {$date} <= '{$date_filter_fixed_end}' ";
+		}
+
+		if (
+			$date_filter==='within_last_days'
+		) {
+			$where .= " AND {$date} >='{$date_filter_last_days_time}' ";
+		}
+
+		return $where;
 	}
 }

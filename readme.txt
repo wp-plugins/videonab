@@ -16,22 +16,22 @@ Video playback is presented in HD via an elegant design that includes it’s own
 
 Key Features
 
-*	Manually add videos to your site via a simple interface
-*	Facebook commenting system for each video
-*	All videos are organized in a modern design fit for all sites
-*	Specify the number of videos to display, and other customizations
-*	Fully Responsive for displaying videos on all devices
+*	Manually add videos to your site via a simple interface 
+*	Facebook commenting system for each video 
+*	All videos are organized in a modern design fit for all sites 
+*	Specify the number of videos to display, and other customizations 
+*	Fully Responsive for displaying videos on all devices 
 *	Designed to visually integrate into any WordPress theme
-*	Sharing system that links other users directly to your site instead of YouTube
-*	Re-title Videos and their descriptions as needed
-*	Edit permalink titles of videos as needed and enhance SEO
-*	Latest YouTube API
+*	Sharing system that links other users directly to your site instead of YouTube 
+*	Re-title Videos and their descriptions as needed 
+*	Edit permalink titles of videos as needed and enhance SEO 
+*	Latest YouTube API 
 *	Pro version available: Aggregate youtube videos automatically, voting, and more!
 
-Check out the live demo:
-http://www.videonab.com/tutorials/
+Check out the live demo: 
+http://www.scissorbox.com/videonab/
 
-Also See:
+Also See: 
 VideoNab Documentation: http://www.videonab.com/videonablite-documentation/
 More About VideoNab: http://www.videonab.com
 VideoNab Pro Version (LOTS More features!): http://www.videonab.com/product/videonab/
@@ -55,7 +55,7 @@ Image reference: http://www.videonab.com/wp-content/uploads/2014/08/lite-setting
 1. Number of Videos Per Page
 VideoNab consists of 2 core sections on the front-end: The video stream, and the video detail page. This option allows you to set the number of videos that are contained on a single page of the video stream (the list of videos users will first see). This setting is important as you'll use it to control the vertical height of the list, so you can customize how many video previews are shown in order to make it fit within your page or post as needed.
 
-2. Include Pagination
+2. Include Pagination 
 This setting automatically adds pagination to your video stream. This is important as in some cases, especially if not using the Event (Pro Version only: http://www.videonab.com), you may only have a few videos. If all videos fit on a single page of your stream, you can set this to off for a cleaner interface. For users with a LOT of videos, its crucial that this setting is enabled.
 
 3. Enable Comments
@@ -92,7 +92,7 @@ Image reference: http://www.videonab.com/wp-content/uploads/2014/08/9.delete.png
 
 == Screenshots ==
 
-1. List view
+1. List View
 2. Video Detail View
 3. VideoNab is 100% responsive and displays properly on all devices
 4. Manage videos, change titles / descriptions and more via the VideoNab admin

@@ -1,8 +1,8 @@
-<?php  
+<?php
 $enable_comments 	= get_option( $this->prefix . 'enable_comments' )=='Yes';
 ?>
 <div class="crbh-videos crbh-videos-details">
-	<?php  
+	<?php
 	global $post;
 	$video_service = get_post_meta($post->ID,'video_service',true);
 	$template_file = $this->get_plugin_path('includes/details-view-' . $video_service . '.php');
@@ -14,14 +14,17 @@ $enable_comments 	= get_option( $this->prefix . 'enable_comments' )=='Yes';
 		$link 			= get_permalink($post->ID);
 		$id 			= $post->ID;
 
+		VHub_Video_Nav_Links::add_filters();
 
 		ob_start();
 			next_post_link('%link', __('Previous', VHub_LangPrefix));
 		$prev_link = ob_get_clean();
-		 
+
 		ob_start();
 		 	previous_post_link('%link', __('Next', VHub_LangPrefix));
 		$next_link = ob_get_clean();
+
+		VHub_Video_Nav_Links::remove_filters();
 		?>
 		<div class="crbh-navigation <?php echo ($prev_link && $next_link) ? 'two-buttons' : 'one-button' ?>">
 			<a class="crbh-back crbh-left crbh-block" href="<?php echo $this->get_video_page() ?>"><span>&nbsp;</span></a>
@@ -43,14 +46,14 @@ $enable_comments 	= get_option( $this->prefix . 'enable_comments' )=='Yes';
 		</div>
 
 		<div class="crbh-content">
-			<?php  
+			<?php
 			// add block video button
 			include( $this->get_plugin_path('includes/block_video_link.php') );
 			?>
 			<?php echo wpautop($post->post_content); ?>
 		</div>
 
-		<?php  
+		<?php
 		if ($enable_comments) {
 			?>
 			<div class="crbh-comments" data-id="<?php echo $post->ID ?>" >

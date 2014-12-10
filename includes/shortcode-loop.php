@@ -1,7 +1,7 @@
 <?php 
-$id 			= $post->ID;
-$link 			= get_permalink($id);
-$video_data 	= VHub_Video::get_video_data($id);
+$id = $post->ID;
+$link = get_permalink($id);
+$video_data = VHub_Video::get_video_data($id);
 ?>
 <div class="crbh-row <?php echo ($loop_id+1)%2==0 ? 'dd' : '' ?>" data-href="<?php echo $link ?>" >
 	<div class="crbh-copy" >
@@ -32,10 +32,10 @@ $video_data 	= VHub_Video::get_video_data($id);
 			</div>
 			<?php
 		}
-		echo '<p><a href="' . $link . '"><strong>' . $video_data['title'] . '</strong></a></p>';
+		echo '<p><a href="' . $link . '"><strong>' . $video_data['title']  . '</strong></a></p>';
 
 		echo wpautop( $video_data['short_description'] );
-		
+
 		// add block video button
 		include( $this->get_plugin_path('includes/block_video_link.php') );
 		?>
