@@ -108,4 +108,4 @@ Image reference: http://www.videonab.com/wp-content/uploads/2014/08/9.delete.png
 * Display improvements
 
 = 1.0 =
-* Display improvements
+* Major upgrade

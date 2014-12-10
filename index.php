@@ -3,7 +3,7 @@
 Plugin Name: VideoNab
 Plugin URI: http://www.videonab.com
 Description: Need more features like topic-based video streaming and video ranking?  <a href="http://www.videonab.com" target="_blank">Get the Pro Version</a>
-Version: 0.2
+Version: 1.0
 Author: Josh Kremer & Josh Sears
 */
 
