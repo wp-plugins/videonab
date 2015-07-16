@@ -1,4 +1,4 @@
-=== VideoNaab ===
+=== VideoNab ===
 Contributors: joshsears31, joshkremer
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=EWPSFEXFN7AUQ
 Tags: add videos, youtube videos, video comments, add my videos, list videos, add videos to WordPress, comments for videos, video player, pretty video player, share videos
@@ -8,7 +8,7 @@ Stable tag: 1.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-VideoNaab is the best way to add videos to WordPress. Furthermore, VideoNab adds a fully responsive video stream to your website.
+VideoNab is the best way to add videos to WordPress. Furthermore, VideoNab adds a fully responsive video stream to your website.
 
 == Description ==
 VideoNab is the best way to add videos to WordPress. Furthermore, VideoNab adds a fully responsive video stream to your website in a beautiful, organized list. Add any video directly from YouTube, and VideoNab will automatically place them anywhere on your site via a simple shortcode. The design is slick and created specifically to compliment any WordPress theme.
