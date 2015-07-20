@@ -1,4 +1,4 @@
-=== VideoNab ===
+=== VideoNaab ===
 Contributors: joshsears31, joshkremer
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=EWPSFEXFN7AUQ
 Tags: add videos, youtube videos, video comments, add my videos, list videos, add videos to WordPress, comments for videos, video player, pretty video player, share videos
