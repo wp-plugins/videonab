@@ -155,12 +155,13 @@ jQuery(function($) {
 		});
 	}
 
-	function grab_more_videos( page ) {
+	function grab_more_videos( page, page_token ) {
 		if ( !can_ajax ) {
 			return;
 		};
 
 		var page = typeof page !== 'undefined' ? parseInt(page) : 0;
+		var page_token = typeof page_token !== 'undefined' ? page_token : null;
 
 		var $btn = $('span.button.button-large.crbh-grab-videos');
 		if ( !$btn.length ) {
@@ -175,7 +176,8 @@ jQuery(function($) {
 
 		$.post( $btn.attr('data-url'), {
 			'action': 'grab_more_videos',
-			'current_page_page' : page
+			'current_page_page' : page,
+			'page_token' : page_token
 		}, function( response ){
 			can_ajax = true;
 
@@ -189,7 +191,7 @@ jQuery(function($) {
 				}
 
 				if ( data.proceed===true ) {
-					grab_more_videos( page+1 );
+					grab_more_videos(page+1, data.next_page_token);
 				} else {
 					$response_contaner.append( '<div class="carbon-msg carbon-updated"><p>Done</p></div>' );
 				};
