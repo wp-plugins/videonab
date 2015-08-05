@@ -3,8 +3,8 @@ Contributors: joshsears31, joshkremer
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=EWPSFEXFN7AUQ
 Tags: add videos, youtube videos, video comments, add my videos, list videos, add videos to WordPress, comments for videos, video player, pretty video player, share videos
 Requires at least: 3.0.1
-Tested up to: 4.0.2
-Stable tag: 1.0
+Tested up to: 4.2.4
+Stable tag: 1.4.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -112,3 +112,8 @@ Image reference: http://www.videonab.com/wp-content/uploads/2014/08/9.delete.png
 * Now possible to select video detail page template
 * additional video date filter options
 * better mobile browsing experience
+
+= 1.4.1 =
+* Google API support
+* additional video display and filter options
+* design improvements
