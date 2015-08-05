@@ -14,11 +14,11 @@ define('VHub_LangPrefix', 'videonab' );
 // Init the plugin class
 add_action('init',  array('VHub_Main', 'init'));
 
-// set ZEND include paths
-VHub_Main::set_include_path();
+// include Google API v3
+require_once( VHub_Main::get_plugin_path('lib/plugin-classes/google-api.php') );
 
-// include ZEND Framework
-require_once( VHub_Main::get_plugin_path('lib/Zend/Loader.php') );
+// include Video Functions
+require_once( VHub_Main::get_plugin_path('lib/plugin-classes/video.php') );
 
 // include Video Functions
 require_once( VHub_Main::get_plugin_path('lib/plugin-classes/video.php') );
@@ -125,14 +125,6 @@ class VHub_Main {
 
 	public static function init(){
 		return new self();
-	}
-
-	/*
-	* set plugin include paths
-	* required for Zend framework
-	*/
-	public static function set_include_path(){
-		set_include_path(self::get_plugin_path('lib') . PATH_SEPARATOR . self::get_plugin_path() . PATH_SEPARATOR . get_include_path());
 	}
 
 	/**
@@ -543,7 +535,7 @@ class VHub_Main {
 						->set_html('
 							<div class="crbh-info-text-one" >
 								<p><strong>' . __( 'Shortcode: [videonab]', VHub_LangPrefix) . '</strong></p>
-								<p><em>' .  __( 'To display our video feed, simply enter details below, then paste the above shortcode into your page or post.', VHub_LangPrefix ) . '</em></p>
+								<p><em>' .  __( 'To display our video feed, simply enter dtails below, then paste the above shortcode into your page or post.', VHub_LangPrefix ) . '</em></p>
 							</div>
 						'),
 
@@ -607,6 +599,37 @@ class VHub_Main {
 								</p>
 							</div>
 						'),
+
+					Carbon_Field::factory('separator', $this->prefix . 'sep5', __('Google Settings', VHub_LangPrefix)),
+					Carbon_Field::factory('html', $this->prefix . 'ginfo')
+						->set_html('
+							<div class="crbh-info-text-two" >
+								<p><strong>Google API requires a Google Developer Key for retrieving the video information.</strong></p>
+								<p><strong>To retrieve the Google Developer Key, please follow the instuctions below:</strong></p>
+								<ol>
+									<li>Go to <a href="https://console.developers.google.com/project" target="_blank">Google API Console</a> Select you project OR Create your project.</li>
+									<li>Click on the "Create Project" and enter a projects name and create it.</li>
+									<li>If the project data doesn\'t automatically load, click on the project name.</li>
+									<li>To enable the YouTube Data Api
+										<ol>
+											<li>Click on the "API\'s & Auth" left menu link.</li>
+											<li>Click on the "YouTube Data API" link and "Enable" it.</li>
+										</ol>
+									</li>
+									<li>To create a "Google Developer Key"
+										<ol>
+											<li>Click on the "API\'s & Auth" left menu link.</li>
+											<li>Click on the "Credentials" link.</li>
+											<li>Click on the "Create New Key" button in the "Public API access" section.</li>
+											<li>Click on the "Browser Key" button and then "Create" leaving the textarea field empty.</li>
+											<li>Copy the "API key" value and paste it to the input field below.</li>
+										</ol>
+									</li>
+								</ol>
+							</div>
+						'),
+					Carbon_Field::factory('text', $this->prefix . 'google_developer_key', __('Google Developer Key', VHub_LangPrefix))
+						->help_text('Required. ex: xxxxxxxxxxxxxxxxxxxxxx2VF8Wwn3WSaKqE2vk'),
 				));
 		}
 	}
