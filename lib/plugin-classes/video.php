@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 class VHub_Video {
 
@@ -74,7 +74,7 @@ class VHub_Video {
                 'time'                  =>  self::seconds_to_time( get_post_meta($video_obj->ID, 'duration' ,true) ),
                 'metas'                 => array(
                         'video_id'                => get_post_meta($video_obj->ID, 'video_id'               ,true),
-                        'updated'                 => get_post_meta($video_obj->ID, 'updated'                ,true),
+                        // 'updated'                 => get_post_meta($video_obj->ID, 'updated'                ,true), # removed in Google API v3
                         'published'               => get_post_meta($video_obj->ID, 'published'              ,true),
                         'watch_page'              => get_post_meta($video_obj->ID, 'watch_page'             ,true),
                         'flash_player_url'        => get_post_meta($video_obj->ID, 'flash_player_url'       ,true),
@@ -109,7 +109,7 @@ class VHub_Video {
         if (count($words) <= $words_limit + 1) {
             return $input;
         }
-        
+
         $loop_counter = 0;
         foreach ($words as $word_position => $word) {
             $loop_counter++;
@@ -140,7 +140,7 @@ class VHub_Video {
 
         global $wpdb;
         $video_obj = $wpdb->get_row("SELECT post_id as ID FROM `$wpdb->postmeta` AS `meta` WHERE `meta`.`meta_key` = 'video_id' AND `meta`.`meta_value` = '{$video_id}'");
-        
+
         if (empty($video_obj->ID)) {
             return false;
         }
@@ -152,10 +152,9 @@ class VHub_Video {
         if (is_numeric($video_id)) { // vimeo
             # code...
         }else{ // youtube
-            $videos = new VHub_Video_Youtube();
-            $video_data = $videos->get_video_data($video_id);
+            $video_data = VHub_Video_Youtube::get_video_data($video_id);
             if ($video_data) {
-                return $video_data[0];
+                return $video_data;
             }
         }
     }
@@ -282,133 +281,213 @@ class VHub_Video_Updater {
 
 class VHub_Video_Youtube {
 
-    public static function get_video_data( $video_id ){
+    private static $youtube = null;
+    private static $categories = array();
+
+    private static function init() {
+        if ( !empty(self::$youtube) ) {
+            return;
+        }
+
+        $google_client = VHub_Google_Client::get();
+        self::$youtube = new Google_Service_YouTube($google_client);
+    }
+
+    public static function get_video_data($video_id) {
         return self::data_walker( self::get_video_by_id($video_id), true );
     }
 
-    public static function get_videos_data( $search_term, $page=0, $per_page = 8, $orderby='viewCount' ){
+    public static function get_videos_data($search_term, $page=0, $per_page=8, $orderby='date') {
         return self::data_walker( self::get_videos($search_term, $page, $per_page, $orderby) );
     }
 
-    public static function get_related_video_data($youtube_video_id, $max_results = 4){
+    public static function get_related_video_data($youtube_video_id, $max_results=4) {
         return self::data_walker( self::get_related_videos($youtube_video_id, $max_results) );
     }
 
-    public static function data_walker($video_feed, $single = false) {
-        if ($video_feed) {
-            $videos = array();
+    public static function data_walker($video_feed, $single=false) {
+        if ( !$video_feed ) {
+            return false;
+        }
 
-            if ($single) {
-                $videos[] = self::data_processor( $video_feed );
-            }else{
-                foreach ($video_feed as $video_entry) {
-                    $videos[] = self::data_processor( $video_entry );
+        $results = array();
+
+        if ($single) {
+            $results = self::data_processor($video_feed);
+        }else{
+            $videos_to_loop = $video_feed->getItems();
+
+            $videos = array();
+            foreach ($videos_to_loop as $video_entry) {
+                $videos[] = self::get_video_data($video_entry['modelData']['id']['videoId']);
+            }
+
+            $results['next_page_token'] = $video_feed['nextPageToken'];
+            $results['prev_page_token'] = $video_feed['prevPageToken'];
+            $results['videos'] = $videos;
+        }
+
+        return $results;
+    }
+
+    public static function data_processor($video_entry) {
+        $title = $video_entry['snippet']['title'];
+        $video_id = $video_entry['id'];
+        $description = $video_entry['snippet']['description'];
+        $published_date = $video_entry['snippet']['publishedAt'];
+        $views_count = intval($video_entry['statistics']['viewCount']);
+        $thumbnail_src = preg_replace('~default\.jpg~', '0.jpg', $video_entry['snippet']['modelData']['thumbnails']['default']['url']);
+
+        $likes = intval($video_entry['statistics']['likeCount']);
+        $dislikes = intval($video_entry['statistics']['dislikeCount']);
+        $raters = $likes + $dislikes;
+
+        // https://developers.google.com/youtube/2.0/developers_guide_protocol_ratings
+        $min = 1;
+        $max = 5;
+        if ( !$raters ) {
+            $average_rating = 0;
+        } else {
+            $positive_percent_of_total_votes = ($likes * 100) / $raters;
+            $average_rating = max($min, ($positive_percent_of_total_votes / 100) * $max);
+        }
+
+        // PT1H24S
+        // PT1H4M12S
+        preg_match_all('~\d+[a-z]+~i', 'PT1H4M12S', $matches);
+        $duration = 0;
+        if ( $matches ) {
+            foreach ($matches[0] as $time) {
+                preg_match('~(\d+)([a-z]+)~i', $time, $time_info);
+                $time_value = $time_info[1];
+                $time_type = $time_info[2];
+
+                switch ($time_type) {
+                    case 'H':
+                        $duration += $time_value * 60 * 60; // hours in seconds
+                        break;
+
+                    case 'M':
+                        $duration += $time_value * 60; // minutes in seconds
+                        break;
+
+                    case 'S':
+                    default:
+                        $duration += $time_value; // should be in seconds
+                        break;
                 }
             }
-        }else{
-            $videos = false;
         }
+
+        $video_tags = $video_entry['snippet']['tags'];
+
+        $category_id = $video_entry['snippet']['categoryId'];
+        $category_obj = self::get_category_by_id($category_id);
+        $category_name = $category_obj ? $category_obj['modelData']['snippet']['title'] : '';
+
+        return array(
+            'title'                 => $title,
+            'id'                    => $video_id,
+            'description'           => $description,
+            'metas'                 => array(
+                    'video_id'              => $video_id,
+                    'updated'               => '', # removed in Google API v3
+                    'updated_time'          => '', # removed in Google API v3
+                    'published'             => $published_date,
+                    'published_time'        => strtotime($published_date),
+                    'watch_page'            => "https://www.youtube.com/watch?v={$video_entry['id']}&feature=youtube_gdata_player",
+                    'flash_player_url'      => "http://www.youtube.com/v/{$video_entry['id']}?version=3&f=videos&app=youtube_gdata",
+                    'duration'              => $duration,
+                    'youtube_view_count'    => $views_count,
+                    'thumbnail'             => $thumbnail_src,
+                    'video_service'         => 'youtube',
+                    'rating'                => $average_rating,
+                    'raters'                => $raters,
+                    'fb_likes'              => 0,
+                    'fb_comments'           => 0,
+                    'fb_comments_total'     => 0
+                ),
+            'taxonomies'            => array(
+                    VHub_Prefix . 'video_cats'      => $category_name,
+                    VHub_Prefix . 'video_tags'      => $video_tags,
+                )
+        );
+    }
+
+    /**
+     * Allowed values: [date, rating, relevance, title, videocount, viewcount]
+     */
+    public static function get_videos($search_term, $page_token=null, $max_results=8, $orderby='date') {
+        self::init();
+
+        $params = array(
+            'q' => $search_term,
+            'type' => 'video',
+            'order' => $orderby,
+            'maxResults' => intval($max_results),
+        );
+
+        if ( $page_token ) {
+            $params['pageToken'] = $page_token;
+        }
+
+        $videos = self::$youtube->search->listSearch(
+            'id',
+            $params
+        );
 
         return $videos;
     }
 
-    public static function data_processor($video_entry){
-        $videoThumbnails = $video_entry->getVideoThumbnails();
+    public static function get_related_videos($video_id, $max_results=4) {
+        self::init();
 
-        if ( 
-            method_exists($video_entry->getRating(), 'getAverage') 
-            && method_exists($video_entry->getRating(), 'getnumRaters')
-        ) {
-            $rating_average = $video_entry->getRating()->getAverage();
-            $raters = $video_entry->getRating()->getnumRaters();
-        } else {
-            $rating_average = 0;
-            $raters = 0;
-        }
+        $videos = self::$youtube->search->listSearch(
+            'id',
+            array(
+                'type' => 'video',
+                'relatedToVideoId' => $video_id,
+                'maxResults' => intval($max_results)
+            )
+        );
 
-        return array(
-                'title'                 => $video_entry->getVideoTitle(),
-                'id'                    => $video_entry->getVideoId(),
-                'description'           => $video_entry->getVideoDescription(),
-                'metas'                 => array(
-                        'video_id'              => $video_entry->getVideoId(),
-                        'updated'               => $video_entry->getUpdated()->getText(),
-                        'updated_time'          => strtotime($video_entry->getUpdated()->getText()),
-                        'published'             => $video_entry->getPublished()->getText(),
-                        'published_time'        => strtotime($video_entry->getPublished()->getText()),
-                        'watch_page'            => $video_entry->getVideoWatchPageUrl(),
-                        'flash_player_url'      => $video_entry->getFlashPlayerUrl(),
-                        'duration'              => $video_entry->getVideoDuration(),
-                        'youtube_view_count'    => $video_entry->getVideoViewCount(),
-                        'thumbnail'             => preg_replace('~default\.jpg~', '0.jpg', $videoThumbnails[0]['url'] ),
-                        'video_service'         => 'youtube',
-                        'rating'                => $rating_average,
-                        'raters'                => $raters,
-                        'fb_likes'              => 0,
-                        'fb_comments'           => 0,
-                        'fb_comments_total'     => 0
-                    ),
-                'taxonomies'            => array(
-                        VHub_Prefix . 'video_cats'      => $video_entry->getVideoCategory(),
-                        VHub_Prefix . 'video_tags'      => $video_entry->getVideoTags(),
-                    )
-            );
+        return $videos;
     }
 
-    public static function get_videos($search_term, $page=0, $max_results = 8, $orderby='published') {
-        # orderby: relevance, viewCount, updated, rating
-        # https://developers.google.com/youtube/2.0/reference?csw=1#orderbysp
-        Zend_Loader::loadClass('Zend_Gdata_YouTube');
-        $yt = new Zend_Gdata_YouTube();
-        $yt->setMajorProtocolVersion(2);
-        $query = $yt->newVideoQuery();
-        $query->setOrderBy($orderby);
-        $query->setSafeSearch('none');
-        $query->setVideoQuery($search_term);
-        $query->setMaxResults($max_results);
-        $query->setStartIndex($page*$max_results + 1);
-        try {
-            $return = $yt->getVideoFeed($query->getQueryUrl(2));
-        } catch (Exception $e) {
-            /*
-            Fatal error: Uncaught exception 'Zend_Gdata_App_HttpException' with message 'Expected response code 200, got 400
-            GDataInvalidRequestUriException : You cannot request beyond item 500.
-            */
-            $return = false;;
-        }
+    public static function get_video_by_id( $video_id ) {
+        self::init();
 
-        return $return;
+        $videos = self::$youtube->videos->listVideos(
+            'id, snippet, contentDetails, statistics',
+            array(
+                'id' => $video_id,
+                'maxResults' => 1
+            )
+        );
+
+        $video_items = $videos->getItems();
+
+        return $video_items ? $video_items[0] : false;
     }
 
-    public static function get_related_videos($youtube_video_id, $max_results = 4) {
-        Zend_Loader::loadClass('Zend_Gdata_YouTube');
-        $yt = new Zend_Gdata_YouTube();
-        $yt->setMajorProtocolVersion(2);
-        $query = $yt->newVideoQuery();
-        $query->setSafeSearch('none');
-        $query->setMaxResults($max_results);
-        
-        try {
-            $return = $yt->getRelatedVideoFeed($youtube_video_id, $query->getQueryUrl(2));
-        } catch (Exception $e) {
-            $return = false;
-        }
-        
-        return $return;
-    }
+    public static function get_category_by_id( $category_id ) {
+        self::init();
 
-    public static function get_video_by_id($video_id){
-        Zend_Loader::loadClass('Zend_Gdata_YouTube');
-        $yt = new Zend_Gdata_YouTube();
-        $yt->setMajorProtocolVersion(2);
-        try {
-            $return = $yt->getVideoEntry( $video_id ); // video feeed
-        } catch (Exception $e) {
-            $return = false;
+        if ( !empty(self::$categories[$category_id]) ) {
+            return self::$categories[$category_id];
         }
 
-        return $return;
+        $categories = self::$youtube->videoCategories->listVideoCategories(
+            'id, snippet',
+            array(
+                'id' => $category_id
+            )
+        );
+
+        $categories_items = $categories->getItems();
+
+        self::$categories[$category_id] = $categories_items ? $categories_items[0] : false;
+
+        return self::$categories[$category_id];
     }
 }
-
-
